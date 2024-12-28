@@ -5,12 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { loginWithGoogle } from "@/firebase/firebaseAuth";
+import { loginWithGoogle, loginWithEmailPassword } from "@/firebase/firebaseAuth"; // import both functions
 import { useState } from "react";
 
 export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRef<"div">) {
   const [loading, setLoading] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
+  // Google login handler
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
@@ -28,6 +32,28 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
     }
   };
 
+  // Email/password login handler
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault(); // prevent page refresh on form submission
+    setLoading(true);
+    setError(null); // reset error
+
+    try {
+      await loginWithEmailPassword(email, password);
+      alert("Email login successful!");
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        console.error("Email login failed:", error.message);
+        setError("Invalid email or password.");
+      } else {
+        console.error("An unknown error occurred during email login.");
+        setError("An unknown error occurred.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <Card>
@@ -36,11 +62,11 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
           <CardDescription>Enter your email below to login to your account</CardDescription>
         </CardHeader>
         <CardContent>
-          <form>
+          <form onSubmit={handleEmailLogin}>
             <div className="flex flex-col gap-6">
               <div className="grid gap-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="m@example.com" required />
+                <Input id="email" type="email" placeholder="m@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
               </div>
               <div className="grid gap-2">
                 <div className="flex items-center">
@@ -49,11 +75,15 @@ export function LoginForm({ className, ...props }: React.ComponentPropsWithoutRe
                     Forgot your password?
                   </a>
                 </div>
-                <Input id="password" type="password" required />
+                <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
               </div>
-              <Button type="submit" className="w-full">
-                Login
+
+              {error && <p className="text-red-500 text-sm">{error}</p>}
+
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Loading..." : "Login with Email"}
               </Button>
+
               <Button variant="outline" className="w-full" onClick={handleGoogleLogin} disabled={loading}>
                 {loading ? "Loading..." : "Login with Google"}
               </Button>
